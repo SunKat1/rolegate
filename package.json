@@ -1,0 +1,64 @@
+{
+  "name": "rolegate",
+  "version": "0.1.0",
+  "description": "Tiny, dependency-free access control for TypeScript: roles, actions and routes. One config for Node, Express and React.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./express": {
+      "types": "./dist/express/index.d.ts",
+      "import": "./dist/express/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "tsx --test test/*.test.ts test/*.test.tsx",
+    "typecheck": "tsc -p ."
+  },
+  "keywords": [
+    "rbac",
+    "permissions",
+    "access-control",
+    "authorization",
+    "typescript",
+    "react",
+    "express",
+    "routes",
+    "route-guard"
+  ],
+  "author": "Vladyslav Katrych",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "global-jsdom": "^29.0.0",
+    "jsdom": "^29.1.1",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
