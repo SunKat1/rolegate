@@ -1,6 +1,7 @@
+// The resource engine: roles, inheritance, deny wins, conditions.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRbac, ForbiddenError } from '../src/index.js';
+import { createRbac, ForbiddenError } from '../../src/index.js';
 
 const rbac = createRbac<{ userId?: number; ownerId?: number }>({
   roles: {
@@ -63,21 +64,12 @@ test('assert throws ForbiddenError', () => {
   assert.doesNotThrow(() => rbac.assert('viewer', 'posts', 'read'));
 });
 
-test('invalid configs fail fast', () => {
-  assert.throws(() => createRbac({ roles: { a: { extends: ['missing'] } } }), /unknown role "missing"/);
-  assert.throws(
-    () => createRbac({ roles: { a: { extends: ['b'] }, b: { extends: ['a'] } } }),
-    /circular/,
-  );
-});
-
 test('exposes configured role names', () => {
   assert.deepEqual([...rbac.roles].sort(), ['admin', 'author', 'blocked', 'editor', 'noDeletes', 'viewer']);
 });
 
 test('names that live on Object.prototype are not roles', () => {
   assert.equal(rbac.can('constructor', 'posts', 'read'), false);
-  assert.throws(() => createRbac({ roles: { a: { extends: ['toString'] } } }), /unknown role "toString"/);
 });
 
 test('ForbiddenError carries the resource and action', () => {

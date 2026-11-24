@@ -98,13 +98,24 @@ Project layout:
 
 ```
 src/
-  shared/    role inheritance and the "deny wins" rule, used by both engines
-  core/      createRbac: actions on resources
-  routes/    createRouteAccess: route patterns, page and API access, rows from a DB
-  express/   requirePermission and guardRoutes
-  react/     providers, hooks and components
-docs/        usage guides
-test/
+  shared/        used by both engines
+    roles.ts       role inheritance and the "deny wins" rule
+    validate.ts    config shape checks, the "__proto__" guard
+    errors.ts      ForbiddenError
+  core/          createRbac: actions on resources
+    createRbac.ts  the checker itself
+    rules.ts       how resource rules are checked, indexed and matched
+  routes/        createRouteAccess: pages and API routes
+    matching/
+      path.ts      how a request path is read: decoding, "..", case
+      pattern.ts   "/posts/:id", "/admin/*" and friends
+    rules.ts       compiling route rules, methods, HEAD as GET
+    createRouteAccess.ts
+    fromRows.ts    rows from a database -> config
+  express/       requirePermission and guardRoutes
+  react/         providers, hooks and components
+docs/            usage guides
+test/            same folders as src/, plus helpers/ for shared test utilities
 ```
 
 ## Status

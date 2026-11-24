@@ -40,8 +40,11 @@ export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsO
   };
 
   for (const row of rows) {
-    const where = `row for role "${row?.role}" on "${row?.path}"`;
     if (!isObject(row)) configError('every row should be an object like { role, path }');
+
+    // Rows usually come from a database, so every check below goes through
+    // TypeScript's blind spot. The message says which row to go and fix.
+    const where = `row for role "${row.role}" on "${row.path}"`;
     if (typeof row.path !== 'string') configError(`"path" should be a string (${where})`);
     if (row.method != null && typeof row.method !== 'string') configError(`"method" should be a string (${where})`);
 

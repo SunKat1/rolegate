@@ -1,6 +1,7 @@
+// The three kinds of pattern segments, and the patterns we refuse.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compilePattern, normalizePath } from '../src/routes/pattern.js';
+import { compilePattern } from '../../src/routes/matching/pattern.js';
 
 const matches = (pattern: string, path: string) => compilePattern(pattern).test(path);
 
@@ -25,13 +26,18 @@ test('a trailing * covers the section itself and everything below', () => {
   assert.equal(matches('*', '/whatever/you/like'), true);
 });
 
+test('"/*" covers the root as well', () => {
+  assert.equal(matches('/*', '/'), true);
+  assert.equal(matches('/*', '/deep/down'), true);
+});
+
 test('paths are compared the way routers see them', () => {
-  // query and hash are ignored, trailing and double slashes too, and case doesn't matter
+  // the full set of rules lives in path.test.ts, this just checks patterns use them
   assert.equal(matches('/posts/:id', '/posts/42?tab=comments#top'), true);
   assert.equal(matches('/admin/users', '/admin/users/'), true);
   assert.equal(matches('/admin/users', '//admin//users'), true);
   assert.equal(matches('/admin/*', '/ADMIN/Users'), true);
-  assert.equal(normalizePath('posts/'), '/posts');
+  assert.equal(matches('/', ''), true);
 });
 
 test('patterns we do not support fail loudly', () => {
@@ -42,12 +48,7 @@ test('patterns we do not support fail loudly', () => {
   assert.throws(() => compilePattern('/posts?x=1'), /query strings/);
 });
 
-test('"/*" covers the root as well', () => {
-  assert.equal(matches('/*', '/'), true);
-  assert.equal(matches('/*', '/deep/down'), true);
-});
-
-test('an empty path is the root', () => {
-  assert.equal(normalizePath(''), '/');
-  assert.equal(matches('/', ''), true);
+test('"." and ".." are not allowed inside a pattern', () => {
+  assert.throws(() => compilePattern('/public/../admin'), /"\." and "\.\." segments/);
+  assert.throws(() => compilePattern('/./a'), /"\." and "\.\." segments/);
 });
