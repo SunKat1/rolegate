@@ -1,6 +1,7 @@
 import { ForbiddenError } from '../shared/errors.js';
 import { decide, pickRoles, resolveRoles } from '../shared/roles.js';
 import type { RoleDefinition } from '../shared/roles.js';
+import { checkRolesObject, configError, dictionary, isObject } from '../shared/validate.js';
 import type { Context, Rbac, RbacConfig, ResourceRules, Rule } from './types.js';
 
 const ANY = '*';
@@ -19,8 +20,25 @@ interface IndexedRole<C extends Context> {
   deny: Index<C>;
 }
 
-function toEntries<C extends Context>(rules: ResourceRules<C> = {}): Entry<C>[] {
-  return Object.entries(rules).flatMap(([resource, list]) => list.map((rule) => ({ resource, rule })));
+function checkRule(rule: unknown, where: string): void {
+  if (typeof rule === 'string') return;
+  if (!isObject(rule) || typeof rule.action !== 'string') {
+    configError(`a rule should be an action name or { action, when? } (${where})`);
+  }
+  if (rule.when !== undefined && typeof rule.when !== 'function') {
+    configError(`"when" for action "${rule.action}" should be a function (${where})`);
+  }
+}
+
+function toEntries<C extends Context>(rules: ResourceRules<C> | undefined, where: string): Entry<C>[] {
+  if (rules === undefined) return [];
+  if (!isObject(rules)) configError(`${where} should be an object like { posts: ['read'] }`);
+
+  return Object.entries(rules).flatMap(([resource, list]) => {
+    if (!Array.isArray(list)) configError(`rules for "${resource}" should be a list (${where})`);
+    list.forEach((rule) => checkRule(rule, `${where}, resource "${resource}"`));
+    return list.map((rule) => ({ resource, rule }));
+  });
 }
 
 function toIndex<C extends Context>(entries: Entry<C>[]): Index<C> {
@@ -56,9 +74,14 @@ function matches<C extends Context>(index: Index<C>, resource: string, action: s
 export function createRbac<C extends Context = Context>(config: RbacConfig<C>): Rbac<C> {
   // Turn the "resource -> rules" maps into flat lists so the shared role code
   // can handle extends/deny the same way it does for routes.
-  const definitions: Record<string, RoleDefinition<Entry<C>>> = {};
+  checkRolesObject(config?.roles);
+  const definitions = dictionary<RoleDefinition<Entry<C>>>();
   for (const [name, role] of Object.entries(config.roles)) {
-    definitions[name] = { extends: role.extends, allow: toEntries(role.allow), deny: toEntries(role.deny) };
+    definitions[name] = {
+      extends: role.extends,
+      allow: toEntries(role.allow, `allow of role "${name}"`),
+      deny: toEntries(role.deny, `deny of role "${name}"`),
+    };
   }
 
   const known = new Map<string, IndexedRole<C>>();

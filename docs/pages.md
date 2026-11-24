@@ -41,6 +41,12 @@ A few things are handled for you, so they don't catch you off guard:
 - The query string and hash are ignored: `/posts/42?tab=comments` is `/posts/42`.
 - A trailing slash and repeated slashes don't matter: `/admin/users/` is `/admin/users`.
 - Case doesn't matter, the same as in React Router and Express. That way `/ADMIN` can't sneak past a deny written for `/admin/*`.
+- Percent-encoding is decoded and `.` / `..` are resolved before the check, so `/public/../admin` and `/public/%2e%2e/admin` are both checked as `/admin`. Static file servers and proxies resolve them that way, and the guard has to see the same path they do. An encoded slash (`%2F`) counts as a real one.
+- A path with broken encoding, like `/posts/%zz`, is always denied: there's no telling what it points to.
+
+`normalizePath(path)` gives you the path exactly as the checks see it, which helps when a rule doesn't match the way you expected.
+
+Patterns themselves can't contain `.` or `..` segments. `/public/../admin` in a rule is almost surely a typo, so it throws.
 
 Anything fancier, like regex parameters (`:id(\d+)`), optional segments or a `*` in the middle, throws an error when you create the config. We'd rather tell you right away than have a pattern quietly match nothing.
 

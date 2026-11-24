@@ -15,41 +15,85 @@
 export interface RoutePattern {
   /** The pattern exactly as it was written, handy in error messages. */
   readonly source: string;
+  /** Checks an already split path (see `splitPath`). */
+  matches(segments: readonly string[]): boolean;
+  /** Same, for a raw path. A path we can't make sense of never matches. */
   test(path: string): boolean;
 }
 
 /**
- * Brings a path to the form we compare against:
- * no query or hash, no repeated or trailing slashes, lowercase.
+ * Splits a request path into the segments we actually compare.
  *
- * Lowercase because Express and React Router both match routes case-insensitively
- * by default. If we were stricter than the router, someone could open
- * "/ADMIN/users", slip past a deny written for "/admin/*" and still land on the admin page.
+ * The idea is to see the path the same way the most generous thing behind
+ * the guard would see it. Express's router is strict, but `express.static`,
+ * nginx and friends happily decode "%2e%2e" and resolve "..". If we compared
+ * the raw string, "/public/../admin/secret.html" would pass an allow for
+ * "/public/*" and then get served from /admin. So we:
+ *
+ *   - drop the query string and hash,
+ *   - percent-decode every segment (and treat a decoded "/" or "\" as a separator),
+ *   - resolve "." and "..", like a browser does,
+ *   - drop empty segments, so "//a//b/" is "/a/b",
+ *   - lowercase everything, because Express and React Router match
+ *     case-insensitively by default and "/ADMIN" must not slip past "/admin/*".
+ *
+ * Returns null when the path has broken percent-encoding ("%zz"). Callers
+ * treat that as "no access": we can't tell what such a path points to.
+ */
+export function splitPath(path: string): string[] | null {
+  const raw = String(path).split(/[?#]/, 1)[0];
+  const out: string[] = [];
+
+  for (const piece of raw.split('/')) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(piece);
+    } catch {
+      return null;
+    }
+    // "a%2Fb" or "a\b" can turn into two segments for a static file server,
+    // so they're two segments for us too.
+    for (const segment of decoded.split(/[/\\]/)) {
+      if (segment === '' || segment === '.') continue;
+      if (segment === '..') out.pop();
+      else out.push(segment.toLowerCase());
+    }
+  }
+  return out;
+}
+
+/**
+ * Brings a path to the form we compare against, see `splitPath` for the rules:
+ * "/Posts/./42/?tab=1" becomes "/posts/42".
+ *
+ * Segments with broken percent-encoding are kept as they are, so this never
+ * throws. Access checks don't go through here: they deny such paths outright.
  */
 export function normalizePath(path: string): string {
-  let clean = path.split(/[?#]/, 1)[0];
-  clean = ('/' + clean).replace(/\/{2,}/g, '/');
-  if (clean.length > 1) clean = clean.replace(/\/$/, '');
-  return clean.toLowerCase();
+  const segments = splitPath(path);
+  if (segments) return '/' + segments.join('/');
+
+  const raw = String(path).split(/[?#]/, 1)[0];
+  return '/' + raw.split('/').filter(Boolean).join('/').toLowerCase();
 }
 
 const PARAM = /^:[A-Za-z0-9_]+$/;
-
-function segmentsOf(path: string): string[] {
-  // "/" -> [], "/posts/42" -> ["posts", "42"]
-  return path === '/' ? [] : path.slice(1).split('/');
-}
 
 export function compilePattern(pattern: string): RoutePattern {
   const fail = (why: string): never => {
     throw new Error(`rolegate: bad route pattern "${pattern}": ${why}`);
   };
 
-  if (pattern === '*') return { source: pattern, test: () => true };
+  if (pattern === '*') {
+    return { source: pattern, matches: () => true, test: (path) => splitPath(path) !== null };
+  }
   if (typeof pattern !== 'string' || !pattern.startsWith('/')) fail('it should start with "/" (or be just "*")');
   if (/[?#]/.test(pattern)) fail('query strings and hashes are not part of a route');
+  // "/public/../admin" in a pattern is almost certainly a mistake, and resolving
+  // it quietly would hide what the rule really covers.
+  if (pattern.split(/[/\\]/).some((s) => s === '.' || s === '..')) fail('"." and ".." segments are not allowed');
 
-  const parts = segmentsOf(normalizePath(pattern));
+  const parts = splitPath(pattern) ?? fail('it has broken percent-encoding');
   const wildcard = parts[parts.length - 1] === '*';
   const fixed = wildcard ? parts.slice(0, -1) : parts;
 
@@ -58,12 +102,18 @@ export function compilePattern(pattern: string): RoutePattern {
     if (part.startsWith(':') && !PARAM.test(part)) fail(`"${part}" is not a valid parameter (use something like ":id")`);
   }
 
+  const matches = (actual: readonly string[]) => {
+    if (wildcard ? actual.length < fixed.length : actual.length !== fixed.length) return false;
+    // Empty segments never survive splitPath, so a :param always gets something.
+    return fixed.every((part, i) => part.startsWith(':') || part === actual[i]);
+  };
+
   return {
     source: pattern,
+    matches,
     test(path) {
-      const actual = segmentsOf(normalizePath(path));
-      if (wildcard ? actual.length < fixed.length : actual.length !== fixed.length) return false;
-      return fixed.every((part, i) => (part.startsWith(':') ? actual[i] !== '' : part === actual[i]));
+      const segments = splitPath(path);
+      return segments !== null && matches(segments);
     },
   };
 }

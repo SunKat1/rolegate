@@ -30,7 +30,8 @@
   },
   "files": [
     "dist",
-    "docs"
+    "docs",
+    "src"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

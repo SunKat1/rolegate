@@ -63,7 +63,7 @@ app.put('/api/posts/:id', updatePost);
 
 What the guard does on each request:
 
-1. It takes the roles from `req.user.roles` (or `req.user.role`). No roles means `401`.
+1. It takes the roles from `req.user.roles` (or `req.user.role`). No roles means `401`. Empty strings and `null`s in the list don't count, so `roles: ['']` is a `401` too.
 2. It takes the method and the full path, `req.baseUrl + req.path`. So even inside `app.use('/api', ...)` it sees `/api/posts/1` and not just `/posts/1`.
 3. If the route isn't allowed, it sends `403` with `{ error: 'Forbidden', path, method }`. Otherwise it calls `next()`.
 
@@ -95,6 +95,25 @@ There are two ways to do it, pick whichever reads better in your code:
   ```
 
   With this setup the guard never sends `401`, since everyone has at least the `guest` role. Instead of 401 they get `403`.
+
+## CORS
+
+If your frontend lives on another domain, the browser sends a preflight `OPTIONS` request before the real one. It carries no cookies and no token, so the guard would answer `401` and the browser would never send the actual request.
+
+The cleanest fix is to put `cors()` above the guard. It answers preflights itself and never passes them on:
+
+```ts
+app.use(cors({ origin: 'https://app.example.com', credentials: true }));
+app.use('/api', guardRoutes(apiAccess));
+```
+
+If preflights have to reach the guard for some reason, tell it to let them through:
+
+```ts
+app.use('/api', guardRoutes(apiAccess, { skipMethods: ['OPTIONS'] }));
+```
+
+Nothing is skipped by default. Only list methods that your app never handles with real logic.
 
 ## Routes and actions together
 

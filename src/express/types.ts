@@ -1,3 +1,4 @@
+import { roleNames } from '../shared/roles.js';
 import type { Roles } from '../shared/roles.js';
 
 /**
@@ -38,6 +39,10 @@ export function defaultGetRoles(req: unknown): Roles {
   return user?.roles ?? user?.role;
 }
 
+/**
+ * "Not signed in" means there isn't a single usable role name. So `['']`
+ * or `[null]` from a half-filled token gets a 401, the same as no user at all.
+ */
 export function hasNoRoles(roles: Roles): boolean {
-  return roles === undefined || roles === '' || (Array.isArray(roles) && roles.length === 0);
+  return roleNames(roles).length === 0;
 }

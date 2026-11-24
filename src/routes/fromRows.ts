@@ -1,3 +1,4 @@
+import { checkRoleName, configError, dictionary, isObject } from '../shared/validate.js';
 import type { RouteAccessConfig, RouteRoleConfig } from './types.js';
 
 /**
@@ -28,21 +29,33 @@ export interface FromRowsOptions {
  * tells you which role has the broken one.
  */
 export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsOptions = {}): RouteAccessConfig {
-  const roles: Record<string, RouteRoleConfig> = {};
-  const roleFor = (name: string) => (roles[name] ??= {});
+  // No prototype here: with a plain {} a row with role "__proto__" would
+  // return Object.prototype from roles[name] and we'd write its routes into
+  // every object in the app. checkRoleName refuses that name anyway, this is
+  // the second lock on the same door.
+  const roles = dictionary<RouteRoleConfig>();
+  const roleFor = (name: string, where: string) => {
+    checkRoleName(name, where);
+    return (roles[name] ??= {});
+  };
 
   for (const row of rows) {
+    const where = `row for role "${row?.role}" on "${row?.path}"`;
+    if (!isObject(row)) configError('every row should be an object like { role, path }');
+    if (typeof row.path !== 'string') configError(`"path" should be a string (${where})`);
+    if (row.method != null && typeof row.method !== 'string') configError(`"method" should be a string (${where})`);
+
     const effect = row.effect ?? 'allow';
-    if (effect !== 'allow' && effect !== 'deny') {
-      throw new Error(`rolegate: unknown effect "${effect}" for role "${row.role}" on "${row.path}"`);
-    }
-    const role = roleFor(row.role);
+    if (effect !== 'allow' && effect !== 'deny') configError(`unknown effect "${effect}" (${where})`);
+
+    const role = roleFor(row.role, where);
     const list = (role[effect] ??= []);
     list.push(row.method ? { path: row.path, methods: [row.method] } : row.path);
   }
 
   for (const [name, parents] of Object.entries(options.extends ?? {})) {
-    roleFor(name).extends = [...parents];
+    if (!Array.isArray(parents)) configError(`parents of role "${name}" should be a list`);
+    roleFor(name, 'in options.extends').extends = [...parents];
   }
 
   return { roles };

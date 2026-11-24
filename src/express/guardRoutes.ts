@@ -12,6 +12,15 @@ export interface GuardRoutesOptions<Req = RequestLike> {
    * The query string isn't part of it.
    */
   getPath?: (req: Req) => string;
+  /**
+   * Methods the guard lets through without any check. Empty by default.
+   *
+   * The usual reason is CORS: a browser sends a preflight `OPTIONS` request
+   * without cookies or a token, so the guard would answer 401 and the real
+   * request would never happen. Better fix: mount `cors()` above the guard,
+   * it answers preflights by itself. If you can't, pass `['OPTIONS']` here.
+   */
+  skipMethods?: readonly string[];
 }
 
 function defaultGetPath(req: unknown): string {
@@ -34,8 +43,15 @@ function defaultGetPath(req: unknown): string {
 export function guardRoutes<Req = RequestLike>(access: Source<RouteAccess>, options: GuardRoutesOptions<Req> = {}) {
   const getRoles = options.getRoles ?? defaultGetRoles;
   const getPath = options.getPath ?? defaultGetPath;
+  const skip = new Set((options.skipMethods ?? []).map((m) => m.toUpperCase()));
 
   return (req: Req, res: ResponseLike, next: NextLike): void => {
+    const method = (req as RequestLike).method ?? 'GET';
+    if (skip.has(method.toUpperCase())) {
+      next();
+      return;
+    }
+
     const roles = getRoles(req);
     if (hasNoRoles(roles)) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -43,7 +59,6 @@ export function guardRoutes<Req = RequestLike>(access: Source<RouteAccess>, opti
     }
 
     const path = getPath(req);
-    const method = (req as RequestLike).method ?? 'GET';
     if (!read(access).can(roles, path, method)) {
       res.status(403).json({ error: 'Forbidden', path, method });
       return;

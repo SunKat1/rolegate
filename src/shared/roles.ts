@@ -65,11 +65,21 @@ export function resolveRoles<R>(definitions: Record<string, RoleDefinition<R>>):
   return resolved;
 }
 
-/** Turns whatever the app gave us into the resolved roles we actually know about. */
+/**
+ * Turns whatever the app gave us into a list of real role names.
+ *
+ * Roles usually come from a token or a session, so they aren't always what
+ * the types promise: null, '' or a number in the list just get skipped.
+ */
+export function roleNames(roles: Roles): string[] {
+  const list: readonly unknown[] = typeof roles === 'string' ? [roles] : Array.isArray(roles) ? roles : [];
+  return list.filter((name): name is string => typeof name === 'string' && name !== '');
+}
+
+/** The resolved roles we actually know about, out of the ones the app gave us. */
 export function pickRoles<T>(known: Map<string, T>, roles: Roles): T[] {
-  const list = typeof roles === 'string' ? [roles] : roles ?? [];
   const picked: T[] = [];
-  for (const name of list) {
+  for (const name of roleNames(roles)) {
     const role = known.get(name);
     if (role) picked.push(role);
   }
