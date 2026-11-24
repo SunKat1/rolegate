@@ -50,9 +50,9 @@ You don't have to use the helper. The config is a plain object, so you can build
 rolegate: bad route pattern "admin/*": it should start with "/" (or be just "*") (in role "editor")
 ```
 
-The shape of the data is checked too, since TypeScript can't see what's in your table: a `path` that isn't a string, `methods` that isn't a list, a `when` that isn't a function and so on all throw right away instead of failing on some request later.
+The shape is checked too, since TypeScript can't see what's in your table. A `path` that isn't a string or a `method` that's a number throws right away.
 
-One role name is refused outright: `__proto__`. In a plain JavaScript object that key doesn't make a role, it replaces the object's prototype. A row like that could quietly hand its routes to every other role, so `routeConfigFromRows` and `createRouteAccess` throw instead.
+The role name `__proto__` is refused. In a plain JS object that key swaps the prototype, and a row like that could hand its routes to every other role.
 
 At startup that's exactly what you want. When you're reloading at runtime, though, you don't want one bad row to take the whole app down. So keep the old rules if the new ones don't build (see below). It's also a good idea to run the same check in the admin screen before saving: call `createRouteAccess` with the new data and show the error to the person who's editing.
 

@@ -39,10 +39,7 @@ export function defaultGetRoles(req: unknown): Roles {
   return user?.roles ?? user?.role;
 }
 
-/**
- * "Not signed in" means there isn't a single usable role name. So `['']`
- * or `[null]` from a half-filled token gets a 401, the same as no user at all.
- */
+/** No usable role name means not signed in, so `['']` or `[null]` is a 401 too. */
 export function hasNoRoles(roles: Roles): boolean {
   return roleNames(roles).length === 0;
 }

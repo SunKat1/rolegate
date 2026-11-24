@@ -34,12 +34,10 @@ export function compilePattern(pattern: string): RoutePattern {
 
   if (typeof pattern !== 'string' || !pattern.startsWith('/')) fail('it should start with "/" (or be just "*")');
   if (/[?#]/.test(pattern)) fail('query strings and hashes are not part of a route');
-  // "/public/../admin" in a rule is almost surely a typo, and resolving it
-  // quietly would hide what the rule really covers.
+  // ".." in a rule is almost always a typo, better to say so
   if (pattern.split(/[/\\]/).some((s) => s === '.' || s === '..')) fail('"." and ".." segments are not allowed');
 
-  // Patterns go through the same splitting as paths, so "/Admin/%20x" in a
-  // rule and "/admin/ x" in a request end up equal.
+  // same splitting as for paths, so both sides are compared in the same form
   const parts = splitPath(pattern) ?? fail('it has broken percent-encoding');
   const wildcard = parts[parts.length - 1] === '*';
   const fixed = wildcard ? parts.slice(0, -1) : parts;
@@ -52,7 +50,7 @@ export function compilePattern(pattern: string): RoutePattern {
   return fromMatcher(pattern, (actual) => {
     const lengthFits = wildcard ? actual.length >= fixed.length : actual.length === fixed.length;
     if (!lengthFits) return false;
-    // splitPath never leaves empty segments, so a :param always gets something real.
+    // no empty segments after splitPath, so :param always gets a value
     return fixed.every((part, i) => part.startsWith(':') || part === actual[i]);
   });
 }

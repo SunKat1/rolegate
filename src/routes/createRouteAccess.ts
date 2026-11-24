@@ -19,8 +19,7 @@ import type { RouteAccess, RouteAccessConfig } from './types.js';
  *   pages.can('user', '/posts/42');   // true
  *   pages.can('user', '/admin/users'); // false
  *
- * All the rules are compiled here, once. A broken rule throws now, while the
- * app is starting, and not on the first request that happens to hit it.
+ * Rules are compiled here, so a broken one throws on startup.
  */
 export function createRouteAccess(config: RouteAccessConfig): RouteAccess {
   checkRolesObject(config?.roles);
@@ -36,8 +35,7 @@ export function createRouteAccess(config: RouteAccessConfig): RouteAccess {
   const known = resolveRoles(definitions);
 
   const can: RouteAccess['can'] = (roles, path, method = 'GET') => {
-    // A path we can't decode could point anywhere, so it gets a flat no
-    // instead of a guess. The same goes for a method that isn't a string.
+    // can't decode the path - can't know where it goes, so no
     const segments = splitPath(path);
     if (segments === null || typeof method !== 'string') return false;
 

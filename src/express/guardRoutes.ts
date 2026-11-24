@@ -13,12 +13,8 @@ export interface GuardRoutesOptions<Req = RequestLike> {
    */
   getPath?: (req: Req) => string;
   /**
-   * Methods the guard lets through without any check. Empty by default.
-   *
-   * The usual reason is CORS: a browser sends a preflight `OPTIONS` request
-   * without cookies or a token, so the guard would answer 401 and the real
-   * request would never happen. Better fix: mount `cors()` above the guard,
-   * it answers preflights by itself. If you can't, pass `['OPTIONS']` here.
+   * Methods to let through without a check, e.g. `['OPTIONS']` for CORS preflights
+   * (they come without a token). Empty by default. Putting `cors()` above the guard works too.
    */
   skipMethods?: readonly string[];
 }

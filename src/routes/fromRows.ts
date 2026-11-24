@@ -29,10 +29,7 @@ export interface FromRowsOptions {
  * tells you which role has the broken one.
  */
 export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsOptions = {}): RouteAccessConfig {
-  // No prototype here: with a plain {} a row with role "__proto__" would
-  // return Object.prototype from roles[name] and we'd write its routes into
-  // every object in the app. checkRoleName refuses that name anyway, this is
-  // the second lock on the same door.
+  // no prototype: with a plain {} a "__proto__" row would write into Object.prototype
   const roles = dictionary<RouteRoleConfig>();
   const roleFor = (name: string, where: string) => {
     checkRoleName(name, where);
@@ -42,8 +39,7 @@ export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsO
   for (const row of rows) {
     if (!isObject(row)) configError('every row should be an object like { role, path }');
 
-    // Rows usually come from a database, so every check below goes through
-    // TypeScript's blind spot. The message says which row to go and fix.
+    // rows come from a DB, so TypeScript can't check them for us
     const where = `row for role "${row.role}" on "${row.path}"`;
     if (typeof row.path !== 'string') configError(`"path" should be a string (${where})`);
     if (row.method != null && typeof row.method !== 'string') configError(`"method" should be a string (${where})`);

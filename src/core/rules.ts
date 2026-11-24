@@ -1,11 +1,6 @@
-/**
- * Resource rules as the engine keeps them.
- *
- * In the config they're grouped by resource: `{ posts: ['read', 'write'] }`.
- * The shared role code (extends, deny wins) wants a flat list, so first we
- * flatten them into entries. After inheritance is applied we group them back
- * by resource, so a check only looks at the rules that can actually match.
- */
+// Rules are grouped by resource in the config: { posts: ['read'] }.
+// The shared role code wants a flat list, so we flatten them, apply
+// inheritance, then group them back by resource for fast lookups.
 
 import { configError, isObject } from '../shared/validate.js';
 import type { Context, ResourceRules, Rule } from './types.js';
@@ -22,10 +17,7 @@ export interface Entry<C extends Context> {
 /** Rules grouped by resource name. */
 export type RuleIndex<C extends Context> = Map<string, Rule<C>[]>;
 
-/**
- * `{ posts: ['read'] }` -> `[{ resource: 'posts', rule: 'read' }]`, checking
- * the shape on the way. `where` goes into error messages, like 'allow of role "editor"'.
- */
+/** `{ posts: ['read'] }` -> `[{ resource: 'posts', rule: 'read' }]`, checking the shape on the way. */
 export function toEntries<C extends Context>(rules: ResourceRules<C> | undefined, where: string): Entry<C>[] {
   if (rules === undefined) return [];
   if (!isObject(rules)) configError(`${where} should be an object like { posts: ['read'] }`);
@@ -50,7 +42,7 @@ export function toIndex<C extends Context>(entries: Entry<C>[]): RuleIndex<C> {
 
 /** Is there a rule for this resource and action whose condition (if any) holds? */
 export function matches<C extends Context>(index: RuleIndex<C>, resource: string, action: string, ctx: C): boolean {
-  // Rules written for this exact resource, plus the "any resource" ones.
+  // this resource plus the '*' ones
   const keys = resource === ANY ? [ANY] : [resource, ANY];
 
   for (const key of keys) {

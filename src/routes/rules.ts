@@ -1,8 +1,4 @@
-/**
- * Route rules as the engine keeps them: the pattern is compiled, the methods
- * are uppercased and sitting in a Set. This file turns what's written in the
- * config into that form and answers "does any of these rules hit this request?".
- */
+// Route rules from the config, compiled once: pattern parsed, methods in a Set.
 
 import { configError, isObject } from '../shared/validate.js';
 import { compilePattern } from './matching/pattern.js';
@@ -15,11 +11,7 @@ export interface CompiledRule {
   methods: ReadonlySet<string> | null;
 }
 
-/**
- * Uppercases the method and maps HEAD to GET. Express runs GET handlers for
- * HEAD requests, so HEAD has to obey GET rules. Otherwise a HEAD request
- * would get around a GET deny.
- */
+/** Express runs GET handlers for HEAD, so HEAD follows GET rules. Otherwise it would dodge a GET deny. */
 export function normalizeMethod(method: string): string {
   const upper = method.toUpperCase();
   return upper === 'HEAD' ? 'GET' : upper;
@@ -34,8 +26,7 @@ export function compileRules(list: RouteRule[] | undefined, role: string, kind: 
     try {
       return compileRule(rule);
     } catch (err) {
-      // Say which role the bad rule belongs to. With rules from a database,
-      // that's the first thing you'll want to know.
+      // with rules from a DB you'll want to know which role it is
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`${message} (in role "${role}")`);
     }
@@ -51,7 +42,7 @@ export function hits(rules: CompiledRule[], segments: readonly string[], method:
 }
 
 function compileRule(rule: RouteRule): CompiledRule {
-  // The short form: just a path, any method.
+  // just a path means any method
   if (typeof rule === 'string') return { pattern: compilePattern(rule), methods: null };
 
   if (!isObject(rule) || typeof rule.path !== 'string') {

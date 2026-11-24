@@ -10,7 +10,8 @@ It answers two kinds of questions, and you can use either one on its own or both
 What you get either way:
 
 - **Deny always wins**, including over rules a role inherits from another one.
-- **Mistakes fail early.** Unknown roles, circular `extends` and broken route patterns throw when the config is created, not halfway through a request.
+- **Mistakes fail early.** Unknown roles, circular `extends`, broken route patterns and rules of the wrong shape throw when the config is created, not halfway through a request.
+- **Paths are read like a server reads them.** `/public/../admin`, `/public/%2e%2e/admin` and `/ADMIN` can't sneak past your rules.
 - **No runtime dependencies.** React is an optional peer dependency, and Express isn't needed at all.
 
 ```bash
@@ -70,8 +71,8 @@ Pick the page that matches what you're building:
 
 | Import from | What's there |
 | --- | --- |
-| `rolegate` | `createRbac`, `createRouteAccess`, `routeConfigFromRows`, `ForbiddenError` |
-| `rolegate/express` | `requirePermission` (one action), `guardRoutes` (many routes at once) |
+| `rolegate` | `createRbac`, `createRouteAccess`, `routeConfigFromRows`, `normalizePath`, `ForbiddenError` |
+| `rolegate/express` | `requirePermission` (one action), `guardRoutes` (many routes at once, can skip `OPTIONS` for CORS) |
 | `rolegate/react` | `RbacProvider`, `useCan`, `<Can>`, `RouteAccessProvider`, `useCanVisit`, `<CanVisit>` |
 
 ## How a decision is made
@@ -84,6 +85,7 @@ The same rules apply to both kinds of checks:
 | Any role denies it | denied, even if another role allows it |
 | A role `extends` another one | it gets all of that role's allows **and** denies |
 | A role that isn't in the config, or no role at all | denied |
+| A path with broken encoding, like `/posts/%zz` | denied |
 
 ## Development
 

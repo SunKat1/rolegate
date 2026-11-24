@@ -24,6 +24,8 @@ rbac.assert('viewer', 'posts', 'write'); // throws ForbiddenError
 
 Resource and action names are plain strings, so call them whatever fits your app. `'*'` means "any resource" or "any action".
 
+The config is checked when you call `createRbac`. An unknown role in `extends`, a rule that isn't a string or `{ action, when? }`, or a `when` that isn't a function throws right there. That matters when the config comes from JSON, where TypeScript can't catch it. The role name `__proto__` isn't allowed.
+
 ## Conditions
 
 Sometimes a role may do something only in certain cases, like deleting **their own** posts. That's what `when` is for:
@@ -58,7 +60,7 @@ import { requirePermission } from 'rolegate/express';
 app.delete('/posts/:id', requirePermission(rbac, 'posts', 'delete'), handler);
 ```
 
-By default it reads roles from `req.user.roles` (or `req.user.role`). It sends `401` if there are none and `403` if the action isn't allowed. Express isn't actually required: anything with `(req, res, next)` and `res.status().json()` works.
+By default it reads roles from `req.user.roles` (or `req.user.role`). It sends `401` if there are none (empty strings and `null`s don't count) and `403` if the action isn't allowed. Express isn't actually required: anything with `(req, res, next)` and `res.status().json()` works.
 
 To pass a context, annotate the request type so you get proper typings:
 

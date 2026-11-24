@@ -1,25 +1,13 @@
-/**
- * How we read a request path before comparing it to any rule.
- *
- * The goal is to see the path the way the most generous thing behind the
- * guard would see it. Express's own router is strict, but `express.static`,
- * nginx and friends happily decode "%2e%2e" and resolve "..". If we compared
- * the raw string, "/public/../admin/secret.html" would pass an allow for
- * "/public/*" and then get served from /admin.
- */
+// We read a path the way express.static or nginx would: decoded, with ".."
+// resolved. Otherwise "/public/../admin" would pass an allow for "/public/*"
+// and the static server would happily serve /admin.
 
 /**
- * Splits a path into the segments we actually compare. Step by step:
+ * "/Public/%2e%2e/Admin/?x=1" -> ["admin"].
  *
- *   1. drop the query string and the hash;
- *   2. percent-decode every segment, and treat a decoded "/" or "\" as a separator;
- *   3. resolve "." and "..", the way a browser does;
- *   4. drop empty segments, so "//a//b/" is the same as "/a/b";
- *   5. lowercase everything, because Express and React Router match
- *      case-insensitively by default and "/ADMIN" must not slip past "/admin/*".
- *
- * Returns null when the path has broken percent-encoding, like "%zz".
- * We can't tell what such a path points to, so callers treat it as "no access".
+ * Drops the query and hash, decodes %xx, resolves "." and "..", skips empty
+ * segments and lowercases (routers ignore case by default).
+ * Returns null for broken encoding like "%zz", and callers deny such paths.
  */
 export function splitPath(path: string): string[] | null {
   const withoutQuery = String(path).split(/[?#]/, 1)[0];
@@ -29,8 +17,7 @@ export function splitPath(path: string): string[] | null {
     const decoded = decode(piece);
     if (decoded === null) return null;
 
-    // "a%2Fb" or "a\b" can become two segments for a static file server,
-    // so they are two segments for us as well.
+    // a decoded "%2F" or a "\" splits the segment, same as on a static server
     for (const segment of decoded.split(/[/\\]/)) {
       if (segment === '' || segment === '.') continue;
       if (segment === '..') segments.pop();
@@ -41,12 +28,8 @@ export function splitPath(path: string): string[] | null {
 }
 
 /**
- * The path as a string, in the form the checks see it:
- * "/Posts/./42/?tab=1" becomes "/posts/42". Handy for debugging a rule.
- *
- * Unlike `splitPath` this never fails. Segments with broken encoding are just
- * kept as they are. Access checks don't use this function: they deny such
- * paths outright.
+ * The path as the checks see it: "/Posts/./42/?tab=1" -> "/posts/42".
+ * Never throws, broken %xx is just left as is. Handy for debugging rules.
  */
 export function normalizePath(path: string): string {
   const segments = splitPath(path);

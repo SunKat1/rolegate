@@ -41,6 +41,7 @@ Some details worth knowing:
 - If you leave out the method, it's `GET`.
 - `HEAD` is checked as `GET`. Express runs GET handlers for HEAD requests, so otherwise HEAD would be a way around a GET deny.
 - `methods: ['*']` is the same as not listing any methods.
+- Paths are read the way a server reads them: `/api/posts/../admin` is checked as `/api/admin`. Details are on the [pages](pages.md#route-patterns) page.
 
 ## One guard for everything
 
@@ -98,22 +99,22 @@ There are two ways to do it, pick whichever reads better in your code:
 
 ## CORS
 
-If your frontend lives on another domain, the browser sends a preflight `OPTIONS` request before the real one. It carries no cookies and no token, so the guard would answer `401` and the browser would never send the actual request.
+If the frontend is on another domain, the browser first sends a preflight `OPTIONS` request. It has no cookies or token, so the guard answers `401` and the real request never happens.
 
-The cleanest fix is to put `cors()` above the guard. It answers preflights itself and never passes them on:
+The simplest fix is to put `cors()` above the guard. It answers preflights itself:
 
 ```ts
 app.use(cors({ origin: 'https://app.example.com', credentials: true }));
 app.use('/api', guardRoutes(apiAccess));
 ```
 
-If preflights have to reach the guard for some reason, tell it to let them through:
+Or let the guard skip them:
 
 ```ts
 app.use('/api', guardRoutes(apiAccess, { skipMethods: ['OPTIONS'] }));
 ```
 
-Nothing is skipped by default. Only list methods that your app never handles with real logic.
+Nothing is skipped by default.
 
 ## Routes and actions together
 

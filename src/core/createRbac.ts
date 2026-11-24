@@ -17,14 +17,12 @@ interface IndexedRole<C extends Context> {
  *   const rbac = createRbac({ roles: { editor: { allow: { posts: ['read', 'write'] } } } });
  *   rbac.can('editor', 'posts', 'write'); // true
  *
- * The whole config is checked and resolved here, once. A typo in a role
- * name or a broken rule throws while the app is starting.
+ * The config is checked here, so a typo throws on startup.
  */
 export function createRbac<C extends Context = Context>(config: RbacConfig<C>): Rbac<C> {
   checkRolesObject(config?.roles);
 
-  // Flatten "resource -> rules" into plain lists, so the shared role code
-  // can handle extends and deny the same way it does for routes.
+  // flat lists for the shared role code (extends, deny wins)
   const definitions = dictionary<RoleDefinition<Entry<C>>>();
   for (const [name, role] of Object.entries(config.roles)) {
     definitions[name] = {
@@ -34,14 +32,14 @@ export function createRbac<C extends Context = Context>(config: RbacConfig<C>): 
     };
   }
 
-  // Then group them back by resource for fast checks.
+  // and back to "by resource" for fast checks
   const known = new Map<string, IndexedRole<C>>();
   for (const [name, role] of resolveRoles(definitions)) {
     known.set(name, { allow: toIndex(role.allow), deny: toIndex(role.deny) });
   }
 
   const can: Rbac<C>['can'] = (roles, resource, action, ctx) => {
-    // Conditions always get an object, so `when: (c) => c.userId === ...` never crashes on undefined.
+    // so `when` never gets undefined
     const context = (ctx ?? {}) as C;
     return decide(
       pickRoles(known, roles),
