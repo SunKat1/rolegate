@@ -1,6 +1,6 @@
 {
   "name": "rolegate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tiny, dependency-free access control for TypeScript: roles, actions and routes. One config for Node, Express and React.",
   "type": "module",
   "sideEffects": false,
