@@ -1,3 +1,4 @@
+import { upperSet } from '../shared/adapter.js';
 import type { RouteAccess } from '../routes/types.js';
 import type { Roles } from '../shared/roles.js';
 import { defaultGetRoles, hasNoRoles, read } from './types.js';
@@ -39,7 +40,7 @@ function defaultGetPath(req: unknown): string {
 export function guardRoutes<Req = RequestLike>(access: Source<RouteAccess>, options: GuardRoutesOptions<Req> = {}) {
   const getRoles = options.getRoles ?? defaultGetRoles;
   const getPath = options.getPath ?? defaultGetPath;
-  const skip = new Set((options.skipMethods ?? []).map((m) => m.toUpperCase()));
+  const skip = upperSet(options.skipMethods);
 
   return (req: Req, res: ResponseLike, next: NextLike): void => {
     const method = (req as RequestLike).method ?? 'GET';

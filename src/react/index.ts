@@ -3,7 +3,7 @@
 
 // Actions on resources: <Can resource="posts" action="delete">
 export { RbacProvider, useCan, Can } from './rbac.js';
-export type { RbacProviderProps, CanProps } from './rbac.js';
+export type { RbacProviderProps, CanProps, CanFn } from './rbac.js';
 
 // Pages: <CanVisit path="/admin">
 export { RouteAccessProvider, useCanVisit, CanVisit } from './routes.js';

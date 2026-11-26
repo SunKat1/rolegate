@@ -117,9 +117,47 @@ When `routeRows` changes, `access` is rebuilt and every `useCanVisit` and `<CanV
 
 The client doesn't need everyone's rules. You can send only the rows for the user's roles, and it'll work just the same.
 
-## What can't go in the database
+## Conditions in the database
 
-Conditions like "only the post's author" are functions (`when` in [actions](actions.md#conditions)), and they live in code. A sensible split:
+Route rules are not the only thing that can live in a table. Action rules can too, including their conditions, as long as the conditions are [objects](actions.md#as-an-object) and not functions:
 
-- **Database**: which pages and endpoints each role can reach at all. These are the things admins change.
-- **Code**: rules that depend on data, like ownership, status or limits. These are the things developers change.
+```sql
+CREATE TABLE permissions (
+  role      text NOT NULL,
+  resource  text NOT NULL,             -- 'posts', or '*'
+  action    text NOT NULL,             -- 'update', or '*'
+  effect    text NOT NULL DEFAULT 'allow' CHECK (effect IN ('allow', 'deny')),
+  condition jsonb                      -- NULL, or e.g. {"authorId": {"ref": "userId"}}
+);
+```
+
+Turning rows into a config is a short loop:
+
+```ts
+import { createRbac } from 'rolegate';
+import type { RbacConfig, Rule } from 'rolegate';
+
+const rows = await db.query('SELECT role, resource, action, effect, condition FROM permissions');
+
+// Object.create(null), not {}: a row with the role "__proto__" would otherwise
+// write into Object.prototype instead of adding a role
+const roles: RbacConfig['roles'] = Object.create(null);
+for (const row of rows) {
+  const role = (roles[row.role] ??= {});
+  const side = (role[row.effect === 'deny' ? 'deny' : 'allow'] ??= {}) as Record<string, Rule[]>;
+  (side[row.resource] ??= []).push(row.condition ? { action: row.action, when: row.condition } : row.action);
+}
+
+const rbac = createRbac({ roles });
+```
+
+`createRbac` checks every condition it gets, so a broken JSON value (an empty object, a field name with spaces, a list with nested objects) throws with the role and resource in the message. Treat it the same way as broken route rows: check before saving in the admin screen, and keep the old rules when a reload fails.
+
+With the conditions in the database, [`rbac.filter()`](filters.md) still works: it turns them into a Prisma or SQL filter, so "list what I can edit" follows whatever the admin set up.
+
+## What stays in code
+
+Conditions that need more than equality and lists, like "the amount is under 100" or "the account is older than a week", are [functions](actions.md#as-a-function), and they live in code. A sensible split:
+
+- **Database**: which pages and endpoints each role can reach, and simple ownership or status rules. These are the things admins change.
+- **Code**: rules with real logic in them. These are the things developers change.

@@ -44,11 +44,15 @@ A few things are handled for you, so they don't catch you off guard:
 - `%xx` is decoded and `..` is resolved, the way static servers and proxies do it. So `/public/../admin` and `/public/%2e%2e/admin` are both checked as `/admin`.
 - A path with broken encoding, like `/posts/%zz`, is always denied.
 
-If a rule doesn't match the way you expect, `normalizePath(path)` shows the path as the checks see it.
+If a rule doesn't match the way you expect, `pages.explain(roles, path)` tells you which rule decided and shows the path as the checks saw it. See [Explaining decisions](explain.md). `normalizePath(path)` gives you just the path.
 
 `.` and `..` aren't allowed in patterns themselves. In a rule they're almost always a typo.
 
 Anything fancier, like regex parameters (`:id(\d+)`), optional segments or a `*` in the middle, throws an error when you create the config. We'd rather tell you right away than have a pattern quietly match nothing.
+
+## Next.js
+
+In Next.js the same `pages` object goes into the middleware, so a user who types `/admin` in the address bar gets redirected before the page even renders. See [Next.js](frameworks/nextjs.md).
 
 ## Guests
 

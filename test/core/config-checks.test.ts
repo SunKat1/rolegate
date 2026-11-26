@@ -28,7 +28,7 @@ test('every rule is an action name or { action, when? }', () => {
   assert.throws(build({ a: { allow: { posts: [{ act: 'read' }] } } }), /action name or \{ action, when\? \}/);
   assert.throws(
     build({ a: { deny: { posts: [{ action: 'read', when: true }] } } }),
-    /"when" for action "read" should be a function/,
+    /"when" should be a function or an object .*action "read"/,
   );
 });
 

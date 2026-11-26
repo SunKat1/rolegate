@@ -1,7 +1,7 @@
 {
   "name": "rolegate",
   "version": "0.1.1",
-  "description": "Tiny, dependency-free access control for TypeScript: roles, actions and routes. One config for Node, Express and React.",
+  "description": "Zero-dependency RBAC and permissions for TypeScript: roles, conditions, page and API route guards, and Prisma/SQL filters. One config for React, Next.js, Express, Fastify, Hono, NestJS and tRPC.",
   "type": "module",
   "sideEffects": false,
   "repository": {
@@ -12,60 +12,185 @@
   "bugs": {
     "url": "https://github.com/SunKat1/rolegate/issues"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "express": [
+        "./dist/cjs/express/index.d.ts"
+      ],
+      "react": [
+        "./dist/cjs/react/index.d.ts"
+      ],
+      "next": [
+        "./dist/cjs/next/index.d.ts"
+      ],
+      "fastify": [
+        "./dist/cjs/fastify/index.d.ts"
+      ],
+      "hono": [
+        "./dist/cjs/hono/index.d.ts"
+      ],
+      "nest": [
+        "./dist/cjs/nest/index.d.ts"
+      ],
+      "trpc": [
+        "./dist/cjs/trpc/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./express": {
-      "types": "./dist/express/index.d.ts",
-      "import": "./dist/express/index.js"
+      "import": {
+        "types": "./dist/express/index.d.ts",
+        "default": "./dist/express/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/express/index.d.ts",
+        "default": "./dist/cjs/express/index.js"
+      }
     },
     "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js"
-    }
+      "import": {
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/react/index.d.ts",
+        "default": "./dist/cjs/react/index.js"
+      }
+    },
+    "./next": {
+      "import": {
+        "types": "./dist/next/index.d.ts",
+        "default": "./dist/next/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/next/index.d.ts",
+        "default": "./dist/cjs/next/index.js"
+      }
+    },
+    "./fastify": {
+      "import": {
+        "types": "./dist/fastify/index.d.ts",
+        "default": "./dist/fastify/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/fastify/index.d.ts",
+        "default": "./dist/cjs/fastify/index.js"
+      }
+    },
+    "./hono": {
+      "import": {
+        "types": "./dist/hono/index.d.ts",
+        "default": "./dist/hono/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/hono/index.d.ts",
+        "default": "./dist/cjs/hono/index.js"
+      }
+    },
+    "./nest": {
+      "import": {
+        "types": "./dist/nest/index.d.ts",
+        "default": "./dist/nest/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/nest/index.d.ts",
+        "default": "./dist/cjs/nest/index.js"
+      }
+    },
+    "./trpc": {
+      "import": {
+        "types": "./dist/trpc/index.d.ts",
+        "default": "./dist/trpc/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/trpc/index.d.ts",
+        "default": "./dist/cjs/trpc/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "docs",
-    "src"
+    "src",
+    "llms.txt",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/build.mjs",
     "test": "tsx --test \"test/**/*.test.ts\" \"test/**/*.test.tsx\"",
     "typecheck": "tsc -p .",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "check:package": "node scripts/check-package.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run check:package"
   },
   "keywords": [
     "rbac",
+    "abac",
+    "acl",
     "permissions",
-    "access-control",
+    "permission",
     "authorization",
+    "access-control",
+    "role-based-access-control",
+    "roles",
+    "policy",
+    "guard",
+    "route-guard",
+    "protected-routes",
+    "middleware",
     "typescript",
     "react",
+    "react-hooks",
+    "nextjs",
+    "next",
     "express",
-    "routes",
-    "route-guard"
+    "fastify",
+    "hono",
+    "nestjs",
+    "trpc",
+    "prisma",
+    "multi-tenant",
+    "isomorphic",
+    "edge",
+    "zero-dependency"
   ],
   "author": "Vladyslav Katrych",
   "license": "MIT",
   "peerDependencies": {
+    "@trpc/server": ">=11",
     "react": ">=17"
   },
   "peerDependenciesMeta": {
+    "@trpc/server": {
+      "optional": true
+    },
     "react": {
       "optional": true
     }
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",
+    "@trpc/server": "^11.31.3",
     "@types/node": "^22.20.5",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.7",
+    "fastify": "^5.12.8",
     "global-jsdom": "^29.0.0",
+    "hono": "^4.13.22",
     "jsdom": "^29.1.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.1",

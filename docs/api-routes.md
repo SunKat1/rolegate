@@ -137,6 +137,20 @@ app.put('/api/posts/:id', async (req, res, next) => {
 });
 ```
 
-## Without Express
+## Other frameworks
 
-Express isn't a dependency. The guard works with anything that has `(req, res, next)`, `req.method`, `req.path` and `res.status().json()`. And `apiAccess.can(roles, path, method)` is a plain function, so you can call it from any framework yourself.
+The same `apiAccess` object works with every binding, only the mounting differs:
+
+| Framework | One guard for the whole API |
+| --- | --- |
+| Express | `app.use('/api', guardRoutes(apiAccess))` from `rolegate/express` |
+| Fastify | `app.addHook('preHandler', guardRoutes(apiAccess))` from `rolegate/fastify`, see [Fastify](frameworks/fastify.md) |
+| Hono | `app.use('/api/*', guardRoutes(apiAccess))` from `rolegate/hono`, see [Hono](frameworks/hono.md) |
+| Next.js | `guardRequest(apiAccess, { getRoles })` in middleware, see [Next.js](frameworks/nextjs.md) |
+| NestJS | `createNestGuard({ access: apiAccess })`, see [NestJS](frameworks/nestjs.md) |
+
+The Express guard works with anything that has `(req, res, next)`, `req.method`, `req.path` and `res.status().json()`. And `apiAccess.can(roles, path, method)` is a plain function, so you can call it from anywhere yourself.
+
+## Why was it a 403?
+
+`apiAccess.explain(roles, path, method)` gives the same answer as `can()` plus the role and rule that decided it. Log it when a request is refused, see [Explaining decisions](explain.md).

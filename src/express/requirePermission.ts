@@ -1,4 +1,4 @@
-import type { Context, Rbac } from '../core/types.js';
+import type { ActionMap, Context, Rbac } from '../core/types.js';
 import type { Roles } from '../shared/roles.js';
 import { defaultGetRoles, hasNoRoles, read } from './types.js';
 import type { NextLike, RequestLike, ResponseLike, Source } from './types.js';
@@ -20,12 +20,12 @@ export interface RequirePermissionOptions<C extends Context = Context, Req = Req
  * `Req` gets inferred from `getRoles` / `getContext` once you annotate them,
  * e.g. `getContext: (req: express.Request) => ({ ... })`.
  */
-export function requirePermission<C extends Context = Context, Req = RequestLike>(
-  rbac: Source<Rbac<C>>,
-  resource: string,
-  action: string,
-  options: RequirePermissionOptions<C, Req> = {},
-) {
+export function requirePermission<
+  C extends Context = Context,
+  A extends ActionMap = ActionMap,
+  R extends keyof A & string = keyof A & string,
+  Req = RequestLike,
+>(rbac: Source<Rbac<C, A>>, resource: R, action: A[R], options: RequirePermissionOptions<C, Req> = {}) {
   const getRoles = options.getRoles ?? defaultGetRoles;
 
   return (req: Req, res: ResponseLike, next: NextLike): void => {

@@ -1,5 +1,10 @@
 import { checkRoleName, configError, dictionary, isObject } from '../shared/validate.js';
-import type { RouteAccessConfig, RouteRoleConfig } from './types.js';
+import type { RouteRule } from './types.js';
+
+/** What routeConfigFromRows gives back: a plain config you're free to tweak before using it. */
+export interface RowsConfig {
+  roles: Record<string, { extends?: string[]; allow?: RouteRule[]; deny?: RouteRule[] }>;
+}
 
 /**
  * One row from a "who can open what" table. Column names are up to you:
@@ -28,9 +33,9 @@ export interface FromRowsOptions {
  * It doesn't check the patterns itself. `createRouteAccess` does that and
  * tells you which role has the broken one.
  */
-export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsOptions = {}): RouteAccessConfig {
+export function routeConfigFromRows(rows: Iterable<RouteRow>, options: FromRowsOptions = {}): RowsConfig {
   // no prototype: with a plain {} a "__proto__" row would write into Object.prototype
-  const roles = dictionary<RouteRoleConfig>();
+  const roles = dictionary<RowsConfig['roles'][string]>();
   const roleFor = (name: string, where: string) => {
     checkRoleName(name, where);
     return (roles[name] ??= {});

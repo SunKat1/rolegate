@@ -9,6 +9,19 @@ export interface CompiledRule {
   pattern: RoutePattern;
   /** null means "any method". */
   methods: ReadonlySet<string> | null;
+  /** Where it came from, for explain(). */
+  info: RouteRuleInfo;
+}
+
+/** The rule that decided, as explain() reports it. */
+export interface RouteRuleInfo {
+  effect: 'allow' | 'deny';
+  /** The role the rule is written in. With `extends`, that's the parent. */
+  role: string;
+  /** The pattern as written in the config, e.g. '/posts/:id'. */
+  path: string;
+  /** null means any method. */
+  methods: string[] | null;
 }
 
 /** Express runs GET handlers for HEAD, so HEAD follows GET rules. Otherwise it would dodge a GET deny. */
@@ -18,13 +31,15 @@ export function normalizeMethod(method: string): string {
 }
 
 /** Compiles the allow (or deny) list of one role. */
-export function compileRules(list: RouteRule[] | undefined, role: string, kind: 'allow' | 'deny'): CompiledRule[] {
+export function compileRules(list: readonly RouteRule[] | undefined, role: string, kind: 'allow' | 'deny'): CompiledRule[] {
   if (list === undefined) return [];
   if (!Array.isArray(list)) configError(`${kind} of role "${role}" should be a list of routes`);
 
   return list.map((rule) => {
     try {
-      return compileRule(rule);
+      const { pattern, methods } = compileRule(rule);
+      const path = typeof rule === 'string' ? rule : rule.path;
+      return { pattern, methods, info: { effect: kind, role, path, methods: methods && [...methods] } };
     } catch (err) {
       // with rules from a DB you'll want to know which role it is
       const message = err instanceof Error ? err.message : String(err);
@@ -33,15 +48,20 @@ export function compileRules(list: RouteRule[] | undefined, role: string, kind: 
   });
 }
 
-/** Does any of the rules cover this path and method? */
-export function hits(rules: CompiledRule[], segments: readonly string[], method: string): boolean {
-  return rules.some((rule) => {
+/** The first rule that covers this path and method. */
+export function findHit(rules: CompiledRule[], segments: readonly string[], method: string): CompiledRule | undefined {
+  return rules.find((rule) => {
     const methodFits = rule.methods === null || rule.methods.has(method);
     return methodFits && rule.pattern.matches(segments);
   });
 }
 
-function compileRule(rule: RouteRule): CompiledRule {
+export function routeRuleText(info: RouteRuleInfo): string {
+  const methods = info.methods ? info.methods.join(', ') + ' ' : '';
+  return `role "${info.role}" ${info.effect === 'allow' ? 'allows' : 'denies'} ${methods}${info.path}`;
+}
+
+function compileRule(rule: RouteRule): Omit<CompiledRule, 'info'> {
   // just a path means any method
   if (typeof rule === 'string') return { pattern: compilePattern(rule), methods: null };
 

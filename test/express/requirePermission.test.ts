@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRbac } from '../../src/index.js';
+import type { Rbac } from '../../src/index.js';
 import { requirePermission } from '../../src/express/index.js';
 import { run } from '../helpers/middleware.js';
 
@@ -48,7 +49,8 @@ test('custom getRoles and getContext', () => {
 });
 
 test('a getter picks up a rebuilt rbac', () => {
-  let current = rbac;
+  // a loose Rbac, since the rebuilt one has different actions (rules from a DB look like that)
+  let current: Rbac = rbac;
   const mw = requirePermission(() => current, 'posts', 'delete');
   assert.equal(run(mw, { user: { role: 'editor' } }).status, 403);
   current = createRbac({ roles: { editor: { allow: { posts: ['*'] } } } });

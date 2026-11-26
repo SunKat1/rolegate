@@ -1,0 +1,36 @@
+# rolegate
+
+> Zero-dependency RBAC and permissions for TypeScript and JavaScript. One config describes who can do what. The same object checks actions in React, guards pages and API routes on the server, and turns rules into Prisma or SQL filters. Bindings for React, Next.js, Express, Fastify, Hono, NestJS and tRPC. ESM and CommonJS. Install with `npm install rolegate`.
+
+Good fit: role-based permissions with inheritance plus simple conditions ("only their own posts"), page and API route guards by path and method, permissions stored in a database, multi-tenant roles per organization, "list what I can edit" queries.
+Not a fit: field-level permissions (use CASL), a policy language shared with other languages (use Casbin), relationship-based access at scale (use OpenFGA or SpiceDB). rolegate does not do authentication: pass the user's roles in.
+
+Key rules: deny always wins, including over inherited allows. Unknown roles and missing context data mean "no". Broken configs throw when created. Paths are normalized (case, `..`, `%2e`, trailing slashes) before route checks.
+
+## Core API (import from 'rolegate')
+
+- `createRbac({ resources?, roles: { [role]: { extends?, allow?: { [resource]: rules }, deny? } } })` returns `{ can, assert, explain, filter, roles }`. A rule is an action name or `{ action, when }`. `when` is a function `(ctx) => boolean`, or an object like `{ authorId: { ref: 'userId' }, status: ['draft', 'review'] }`. `'*'` means any resource or any action.
+- `rbac.can(roles, resource, action, ctx?)` returns a boolean. `rbac.assert(...)` throws `ForbiddenError`. `rbac.explain(...)` returns `{ allowed, reason, role, rule, unknownRoles, message }`.
+- `rbac.filter(roles, resource, action, ctx)` returns a filter tree. `toPrisma(filter)` turns it into a Prisma `where`, `toSql(filter, { placeholder? })` into `{ sql, params }`.
+- `createRouteAccess({ roles: { [role]: { extends?, allow?: [path | { path, methods }], deny? } } })` returns `{ can(roles, path, method?), assert, explain }`. Patterns: `/posts/:id`, `/admin/*`, `*`.
+- `routeConfigFromRows(rows)` turns `{ role, path, method?, effect? }` rows into a config. `rolesIn(memberships, orgId)` gives the roles for one organization plus the `'*'` ones.
+
+## Bindings
+
+- `rolegate/react`: `<RbacProvider rbac roles>`, `useCan()`, `<Can resource action>`, `<RouteAccessProvider access roles>`, `useCanVisit()`, `<CanVisit path>`.
+- `rolegate/next`: `guardRequest(access, { getRoles, loginUrl?, forbiddenUrl? })` for middleware, `withPermission(rbac, resource, action, { getRoles, getContext? }, handler)` for Route Handlers.
+- `rolegate/express`, `rolegate/fastify`, `rolegate/hono`: `requirePermission(rbac, resource, action, { getRoles?, getContext? })` and `guardRoutes(access, { getRoles?, skipMethods? })`. Default roles come from `user.roles` or `user.role`. They answer 401 without roles and 403 without permission.
+- `rolegate/nest`: `const { RolegateGuard, Permission } = createNestGuard({ rbac, access?, errors? })`, then `@Permission('posts', 'delete')`.
+- `rolegate/trpc`: `t.procedure.use(requirePermission(t, rbac, 'posts', 'delete'))` throws `TRPCError` UNAUTHORIZED or FORBIDDEN.
+
+## Docs
+
+- [Actions on resources](https://github.com/SunKat1/rolegate/blob/main/docs/actions.md): roles, inheritance, conditions, Express, React
+- [Frontend pages](https://github.com/SunKat1/rolegate/blob/main/docs/pages.md): route patterns, menus, React Router guards
+- [API routes](https://github.com/SunKat1/rolegate/blob/main/docs/api-routes.md): one guard for a whole API, methods, CORS
+- [Permissions from a database](https://github.com/SunKat1/rolegate/blob/main/docs/database.md): rows to config, live reload
+- [Database filters](https://github.com/SunKat1/rolegate/blob/main/docs/filters.md): Prisma and SQL
+- [Organizations and teams](https://github.com/SunKat1/rolegate/blob/main/docs/organizations.md): multi-tenant roles
+- [Explaining decisions](https://github.com/SunKat1/rolegate/blob/main/docs/explain.md)
+- [TypeScript and module formats](https://github.com/SunKat1/rolegate/blob/main/docs/typescript.md)
+- Frameworks: [Next.js](https://github.com/SunKat1/rolegate/blob/main/docs/frameworks/nextjs.md), [Fastify](https://github.com/SunKat1/rolegate/blob/main/docs/frameworks/fastify.md), [Hono](https://github.com/SunKat1/rolegate/blob/main/docs/frameworks/hono.md), [NestJS](https://github.com/SunKat1/rolegate/blob/main/docs/frameworks/nestjs.md), [tRPC](https://github.com/SunKat1/rolegate/blob/main/docs/frameworks/trpc.md)
