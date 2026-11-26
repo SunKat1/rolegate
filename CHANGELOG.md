@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (not released yet)
+## 0.2.0 (2026-11-26)
 
 Everything from 0.1 works as before. All of the below is opt-in.
 

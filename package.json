@@ -1,6 +1,6 @@
 {
   "name": "rolegate",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Zero-dependency RBAC and permissions for TypeScript: roles, conditions, page and API route guards, and Prisma/SQL filters. One config for React, Next.js, Express, Fastify, Hono, NestJS and tRPC.",
   "type": "module",
   "sideEffects": false,
